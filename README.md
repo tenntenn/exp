@@ -1,3 +1,3 @@
 # tenntenn/exp
 
-* mcp: mirror of golang.org/x/tools/internal/mcp
+* toolsinternal: mirror of golang.org/x/tools/internal
