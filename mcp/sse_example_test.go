@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"golang.org/x/tools/internal/mcp"
+	"github.com/tenntenn/exp/mcp"
 )
 
 type AddParams struct {

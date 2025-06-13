@@ -8,7 +8,7 @@ package main
 import (
 	"context"
 
-	"golang.org/x/tools/internal/mcp"
+	"github.com/tenntenn/exp/mcp"
 )
 
 type HiParams struct {

@@ -10,7 +10,7 @@ import (
 	"log"
 	"os/exec"
 
-	"golang.org/x/tools/internal/mcp"
+	"github.com/tenntenn/exp/mcp"
 )
 
 func main() {

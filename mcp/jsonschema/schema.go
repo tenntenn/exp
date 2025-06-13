@@ -18,7 +18,7 @@ import (
 	"regexp"
 	"slices"
 
-	"golang.org/x/tools/internal/mcp/internal/util"
+	"github.com/tenntenn/exp/mcp/internal/util"
 )
 
 // A Schema is a JSON schema object.
