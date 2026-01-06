@@ -48,7 +48,8 @@ func main() {
     set({ isLoading: true });
 
     try {
-      const response = await fetch('/api/parse', {
+      // Use Connect RPC with JSON-based communication
+      const response = await fetch('/parser.v1.ParserService/Parse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
