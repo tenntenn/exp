@@ -18,6 +18,8 @@ interface AppState {
   setSelectedSSAInstruction: (index: number | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   parse: () => Promise<void>;
+  share: () => Promise<string>;
+  loadFromHash: (hash: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -77,6 +79,81 @@ func main() {
         errors: [
           {
             message: error instanceof Error ? error.message : 'Unknown error',
+            position: { line: 1, column: 1, offset: 0 },
+            severity: 'error',
+          },
+        ],
+        isLoading: false,
+      });
+    }
+  },
+
+  share: async () => {
+    const { code } = get();
+    set({ isLoading: true });
+
+    try {
+      const response = await fetch('/parser.v1.ParserService/Share', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      set({ isLoading: false });
+
+      // Update URL with hash parameter
+      const hash = data.hash;
+      window.history.pushState({}, '', `?share=${hash}`);
+
+      return hash;
+    } catch (error) {
+      console.error('Share error:', error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  loadFromHash: async (hash: string) => {
+    set({ isLoading: true });
+
+    try {
+      const response = await fetch('/parser.v1.ParserService/Load', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hash,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      set({
+        code: data.code,
+        isLoading: false
+      });
+
+      // Auto-parse after loading
+      await get().parse();
+    } catch (error) {
+      console.error('Load error:', error);
+      set({
+        errors: [
+          {
+            message: error instanceof Error ? error.message : 'Failed to load code',
             position: { line: 1, column: 1, offset: 0 },
             severity: 'error',
           },

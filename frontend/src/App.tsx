@@ -1,9 +1,23 @@
+import { useEffect } from 'react';
 import Header from './components/Header';
 import CodeEditor from './components/Editor';
 import ASTViewer from './components/ASTViewer';
 import SSAViewer from './components/SSAViewer';
+import { useAppStore } from './store/app';
 
 function App() {
+  const { loadFromHash } = useAppStore();
+
+  useEffect(() => {
+    // Check if there's a share parameter in the URL
+    const params = new URLSearchParams(window.location.search);
+    const shareHash = params.get('share');
+
+    if (shareHash) {
+      loadFromHash(shareHash);
+    }
+  }, [loadFromHash]);
+
   return (
     <div
       style={{

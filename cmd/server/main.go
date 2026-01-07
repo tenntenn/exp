@@ -28,9 +28,15 @@ func main() {
 	// Create Connect RPC handler
 	handler := api.NewParserServiceHandler()
 
-	// Register Connect RPC endpoint
-	path, connectHandler := newParserServiceHandler(handler)
-	mux.Handle(path, connectHandler)
+	// Register Connect RPC endpoints
+	parsePath, parseHandler := newParserServiceHandler(handler)
+	mux.Handle(parsePath, parseHandler)
+
+	sharePath, shareHandler := newShareServiceHandler(handler)
+	mux.Handle(sharePath, shareHandler)
+
+	loadPath, loadHandler := newLoadServiceHandler(handler)
+	mux.Handle(loadPath, loadHandler)
 
 	// Serve frontend
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +76,28 @@ func newParserServiceHandler(handler *api.ParserServiceHandler) (string, http.Ha
 	connectHandler := connect.NewUnaryHandler(
 		path,
 		handler.Parse,
+		connect.WithCodec(&api.ParseRequestCodec{}),
+	)
+	return path, connectHandler
+}
+
+// newShareServiceHandler creates a Connect RPC handler for Share
+func newShareServiceHandler(handler *api.ParserServiceHandler) (string, http.Handler) {
+	path := "/parser.v1.ParserService/Share"
+	connectHandler := connect.NewUnaryHandler(
+		path,
+		handler.Share,
+		connect.WithCodec(&api.ParseRequestCodec{}),
+	)
+	return path, connectHandler
+}
+
+// newLoadServiceHandler creates a Connect RPC handler for Load
+func newLoadServiceHandler(handler *api.ParserServiceHandler) (string, http.Handler) {
+	path := "/parser.v1.ParserService/Load"
+	connectHandler := connect.NewUnaryHandler(
+		path,
+		handler.Load,
 		connect.WithCodec(&api.ParseRequestCodec{}),
 	)
 	return path, connectHandler
