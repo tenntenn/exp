@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': {
+      '/parser.v1.ParserService': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
