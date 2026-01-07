@@ -3,7 +3,7 @@ import { useAppStore } from '../store/app';
 import type { ASTNode } from '../types';
 
 export default function ASTViewer() {
-  const { ast, setSelectedASTNode } = useAppStore();
+  const { ast, selectedASTNode, setSelectedASTNode } = useAppStore();
 
   if (!ast) {
     return (
@@ -59,7 +59,11 @@ export default function ASTViewer() {
           fontSize: '13px',
         }}
       >
-        <ASTNodeTree node={ast} onNodeClick={setSelectedASTNode} />
+        <ASTNodeTree
+          node={ast}
+          selectedNode={selectedASTNode}
+          onNodeClick={setSelectedASTNode}
+        />
       </div>
     </div>
   );
@@ -67,13 +71,22 @@ export default function ASTViewer() {
 
 interface ASTNodeTreeProps {
   node: ASTNode;
+  selectedNode: ASTNode | null;
   depth?: number;
   onNodeClick: (node: ASTNode) => void;
 }
 
-function ASTNodeTree({ node, depth = 0, onNodeClick }: ASTNodeTreeProps) {
+function ASTNodeTree({ node, selectedNode, depth = 0, onNodeClick }: ASTNodeTreeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 2);
+  const [isHovered, setIsHovered] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
+
+  // Check if this node is selected
+  const isSelected = selectedNode !== null &&
+    selectedNode.start.line === node.start.line &&
+    selectedNode.start.column === node.start.column &&
+    selectedNode.end.line === node.end.line &&
+    selectedNode.end.column === node.end.column;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -81,6 +94,12 @@ function ASTNodeTree({ node, depth = 0, onNodeClick }: ASTNodeTreeProps) {
       setIsExpanded(!isExpanded);
     }
     onNodeClick(node);
+  };
+
+  const getBackgroundColor = () => {
+    if (isSelected) return '#264f78';
+    if (isHovered) return '#2a2a2a';
+    return 'transparent';
   };
 
   return (
@@ -92,13 +111,10 @@ function ASTNodeTree({ node, depth = 0, onNodeClick }: ASTNodeTreeProps) {
           cursor: 'pointer',
           borderRadius: '3px',
           transition: 'background 0.15s',
+          background: getBackgroundColor(),
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#2a2a2a';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <span style={{ color: '#888', marginRight: '4px' }}>
           {hasChildren ? (isExpanded ? '▼' : '▶') : '•'}
@@ -119,6 +135,7 @@ function ASTNodeTree({ node, depth = 0, onNodeClick }: ASTNodeTreeProps) {
             <ASTNodeTree
               key={index}
               node={child}
+              selectedNode={selectedNode}
               depth={depth + 1}
               onNodeClick={onNodeClick}
             />

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/app';
-import type { SSAFunction } from '../types';
+import type { SSAFunction, Instruction } from '../types';
 
 export default function SSAViewer() {
-  const { ssa, setSelectedSSAInstruction } = useAppStore();
+  const { ssa, selectedSSAInstruction, setSelectedSSAInstruction } = useAppStore();
 
   if (!ssa || ssa.length === 0) {
     return (
@@ -63,6 +63,7 @@ export default function SSAViewer() {
           <SSAFunctionView
             key={index}
             func={func}
+            selectedInstruction={selectedSSAInstruction}
             onInstructionClick={setSelectedSSAInstruction}
           />
         ))}
@@ -73,10 +74,11 @@ export default function SSAViewer() {
 
 interface SSAFunctionViewProps {
   func: SSAFunction;
+  selectedInstruction: number | null;
   onInstructionClick: (index: number) => void;
 }
 
-function SSAFunctionView({ func, onInstructionClick }: SSAFunctionViewProps) {
+function SSAFunctionView({ func, selectedInstruction, onInstructionClick }: SSAFunctionViewProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -124,40 +126,16 @@ function SSAFunctionView({ func, onInstructionClick }: SSAFunctionViewProps) {
               </div>
               {block.instructions.map((instrIndex) => {
                 const instr = func.instructions[instrIndex];
+                const isSelected = selectedInstruction === instrIndex;
+
                 return (
-                  <div
+                  <InstructionLine
                     key={instrIndex}
+                    instrIndex={instrIndex}
+                    instr={instr}
+                    isSelected={isSelected}
                     onClick={() => onInstructionClick(instrIndex)}
-                    style={{
-                      padding: '2px 8px',
-                      cursor: 'pointer',
-                      borderRadius: '3px',
-                      transition: 'background 0.15s',
-                      marginLeft: '16px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#2a2a2a';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    <span style={{ color: '#666', marginRight: '8px' }}>
-                      {instrIndex.toString().padStart(3, ' ')}:
-                    </span>
-                    <span style={{ color: '#ce9178' }}>{instr.text}</span>
-                    {instr.position && instr.position.line > 0 && (
-                      <span
-                        style={{
-                          color: '#666',
-                          marginLeft: '8px',
-                          fontSize: '11px',
-                        }}
-                      >
-                        @{instr.position.line}:{instr.position.column}
-                      </span>
-                    )}
-                  </div>
+                  />
                 );
               })}
               {block.successors.length > 0 && (
@@ -175,6 +153,55 @@ function SSAFunctionView({ func, onInstructionClick }: SSAFunctionViewProps) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+interface InstructionLineProps {
+  instrIndex: number;
+  instr: Instruction;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+function InstructionLine({ instrIndex, instr, isSelected, onClick }: InstructionLineProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const getBackgroundColor = () => {
+    if (isSelected) return '#264f78';
+    if (isHovered) return '#2a2a2a';
+    return 'transparent';
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: '2px 8px',
+        cursor: 'pointer',
+        borderRadius: '3px',
+        transition: 'background 0.15s',
+        marginLeft: '16px',
+        background: getBackgroundColor(),
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <span style={{ color: '#666', marginRight: '8px' }}>
+        {instrIndex.toString().padStart(3, ' ')}:
+      </span>
+      <span style={{ color: '#ce9178' }}>{instr.text}</span>
+      {instr.position && instr.position.line > 0 && (
+        <span
+          style={{
+            color: '#666',
+            marginLeft: '8px',
+            fontSize: '11px',
+          }}
+        >
+          @{instr.position.line}:{instr.position.column}
+        </span>
       )}
     </div>
   );
