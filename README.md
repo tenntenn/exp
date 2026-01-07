@@ -6,198 +6,163 @@ GoのソースコードのAST（抽象構文木）とSSA（Static Single Assignm
 
 - **AST可視化**: Goコードの抽象構文木をツリー形式で表示
 - **SSA可視化**: SSA形式の中間表現を関数・Basic Block単位で表示
-- **インタラクティブ**: Monaco Editorによる高機能なコードエディタ
-- **リアルタイム解析**: コードを編集して即座に解析結果を確認
-- **位置情報表示**: ASTノードとSSA命令のソースコード上の位置を表示
+- **双方向連動**: ASTノードやSSA命令をクリックすると対応するソースコードがハイライト
+- **複数ファイル対応**: txtar形式で複数ファイルのパッケージを解析
+- **Go Playground統合**: コードの共有と読み込み
+- **WASMベース**: バックエンドサーバー不要、ブラウザで完結
 
-## 技術スタック
+## アーキテクチャ
 
-### バックエンド
-- Go 1.24+
-- 標準ライブラリ (`go/parser`, `go/ast`, `go/token`, `go/types`)
-- `golang.org/x/tools/go/ssa` - SSA生成
-- `golang.org/x/tools/go/packages` - パッケージ解析
+**WebAssembly (WASM)** を使用してGoコードを直接ブラウザで実行：
 
-### フロントエンド
-- React 18
-- TypeScript
-- Vite
-- Monaco Editor
-- Zustand (状態管理)
-
-## セットアップ
-
-### 前提条件
-
-- Go 1.24+ がインストールされていること
-- Node.js 18+ と npm がインストールされていること
-
-### インストール
-
-1. リポジトリをクローン
-```bash
-git clone https://github.com/tenntenn/exp.git
-cd exp
-```
-
-2. Go依存関係をインストール
-```bash
-go mod tidy
-```
-
-3. フロントエンド依存関係をインストール
-```bash
-cd frontend
-npm install
-```
+- **フロントエンド**: React + TypeScript + Vite + Monaco Editor
+- **パーサー**: GoをWASMにコンパイル（バックエンドサーバー不要！）
+- **ストレージ**: Go Playgroundでコード共有
 
 ## 開発
 
-### フロントエンド開発サーバーを起動
+### 前提条件
+
+- Node.js 18+
+- Go 1.24+
+
+### WASMモジュールのビルド
+
+```bash
+cd wasm
+./build.sh
+```
+
+生成されるファイル:
+- `frontend/public/parser.wasm` - WASMにコンパイルされたGoパーサー
+- `frontend/public/wasm_exec.js` - Go WASMランタイム
+
+### 開発サーバーの起動
 
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-ブラウザで http://localhost:3000 を開く
+http://localhost:5173 を開く
 
-### バックエンドサーバーを起動
-
-別のターミナルで:
+### プロダクションビルド
 
 ```bash
-go run ./cmd/server
+# WASMをビルド
+cd wasm
+./build.sh
+
+# フロントエンドをビルド
+cd ../frontend
+npm run build
+
+# 出力: frontend/dist/
 ```
 
-APIサーバーが http://localhost:8080 で起動します
-
-## プロダクションビルド
-
-### 1. フロントエンドをビルド
+### テストの実行
 
 ```bash
 cd frontend
-npm run build
+npm test              # ヘッドレスモードで実行
+npm run test:ui       # UIモードで実行
 ```
-
-### 2. ビルド済みファイルをサーバーにコピー
-
-```bash
-cp -r dist ../cmd/server/frontend/
-```
-
-### 3. Goサーバーをビルド
-
-```bash
-cd ..
-go build -o bin/server ./cmd/server
-```
-
-### 4. サーバーを起動
-
-```bash
-./bin/server
-```
-
-ブラウザで http://localhost:8080 を開く
 
 ## 使い方
 
-1. **コードを編集**: 左ペインのエディタでGoコードを編集
-2. **解析実行**: 右上の "Parse" ボタンをクリック
-3. **ASTを確認**: 中央ペインでAST構造を確認
-4. **SSAを確認**: 右ペインでSSA形式の中間表現を確認
-5. **ノードをクリック**: ASTノードやSSA命令をクリックすると、対応するソースコードの位置情報が表示されます
+### 単一ファイル
 
-## プロジェクト構造
+Goコードを貼り付けて "Parse" をクリック:
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, World!")
+}
+```
+
+### 複数ファイル（txtar形式）
+
+txtar形式で複数ファイルを扱う:
+
+```
+-- main.go --
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println(Greet("World"))
+}
+
+-- greet.go --
+package main
+
+func Greet(name string) string {
+    return "Hello, " + name + "!"
+}
+```
+
+### コードの共有
+
+1. "Share" ボタンをクリック
+2. URLがクリップボードにコピーされる
+3. URLを他の人に送る
+4. 相手はコードを表示・編集できる
+
+## 技術詳細
+
+### WASM統合
+
+GoパーサーはWebAssemblyにコンパイルされ、ブラウザで直接実行されます:
+
+1. `wasm/main.go` が `goParse` 関数をJavaScriptにエクスポート
+2. `frontend/src/wasm/loader.ts` がWASMモジュールをロード・初期化
+3. パースリクエストはHTTP APIの代わりにWASMで処理
+
+メリット:
+- ✅ バックエンドサーバー不要
+- ✅ 高速なパース（ネットワークレイテンシなし）
+- ✅ オフラインで動作
+- ✅ 簡単なデプロイ（静的ファイルのみ）
+
+### ファイル構造
 
 ```
 .
-├── SPEC.md                      # 仕様書
-├── README.md                    # 本ファイル
-├── backend/                     # バックエンドコード
-│   ├── api/                    # APIハンドラ
-│   │   └── parse.go           # 解析APIエンドポイント
-│   ├── model/                  # データモデル
-│   │   └── types.go           # 型定義
-│   └── parser/                 # 解析ロジック
-│       ├── ast.go             # AST解析
-│       └── ssa.go             # SSA生成
-├── cmd/
-│   └── server/                 # サーバーエントリーポイント
-│       └── main.go
-├── frontend/                    # フロントエンドコード
+├── wasm/                   # Go WASMソース
+│   ├── main.go            # WASMエントリーポイント
+│   └── build.sh           # WASMビルドスクリプト
+├── backend/               # Goパーサーライブラリ
+│   ├── parser/            # AST/SSAパース処理
+│   ├── model/             # データモデル
+│   └── api/               # APIハンドラ（参考用）
+├── frontend/              # Reactフロントエンド
 │   ├── src/
-│   │   ├── components/        # Reactコンポーネント
-│   │   │   ├── Editor.tsx    # コードエディタ
-│   │   │   ├── ASTViewer.tsx # AST表示
-│   │   │   ├── SSAViewer.tsx # SSA表示
-│   │   │   └── Header.tsx    # ヘッダー
-│   │   ├── store/            # 状態管理
-│   │   │   └── app.ts        # Zustandストア
-│   │   ├── types.ts          # TypeScript型定義
-│   │   ├── App.tsx           # メインアプリ
-│   │   └── main.tsx          # エントリーポイント
-│   ├── package.json
-│   └── vite.config.ts
-├── go.mod
-└── go.sum
+│   │   ├── components/    # Reactコンポーネント
+│   │   ├── wasm/          # WASMローダー
+│   │   └── store/         # Zustand状態管理
+│   ├── tests/             # Playwrightテスト
+│   └── public/            # 静的ファイル + WASM
+└── README.md
 ```
 
-## API仕様
+## デプロイ
 
-### POST /api/parse
+`frontend/dist/` を任意の静的ホスティングサービスにデプロイ:
 
-Goコードを解析してASTとSSAを返す
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS S3 + CloudFront
+- 任意のWebサーバー（nginx、Apacheなど）
 
-**リクエスト**:
-```json
-{
-  "code": "package main\n\nfunc main() {\n\tfmt.Println(\"Hello\")\n}",
-  "format": "single"
-}
-```
-
-**レスポンス**:
-```json
-{
-  "ast": {
-    "type": "File",
-    "start": { "line": 1, "column": 1, "offset": 0 },
-    "end": { "line": 5, "column": 1, "offset": 100 },
-    "children": [...]
-  },
-  "ssa": [
-    {
-      "name": "main",
-      "package": "main",
-      "location": "main.go:3:1",
-      "instructions": [...],
-      "blocks": [...]
-    }
-  ],
-  "errors": []
-}
-```
-
-## 今後の機能拡張（仕様書参照）
-
-Phase 2以降で実装予定:
-- Go Playground統合（コード共有機能）
-- txtar形式による複数ファイルサポート
-- 双方向連動（AST/SSA → Code のハイライト）
-- SSA Control Flow Graph (CFG) の可視化
-- エラー表示の改善
-- ダークモード対応
-
-詳細は [SPEC.md](./SPEC.md) を参照してください。
+バックエンドの設定は不要！
 
 ## ライセンス
 
 MIT
-
-## 関連リンク
-
-- [仕様書 (SPEC.md)](./SPEC.md)
-- toolsinternal: mirror of golang.org/x/tools/internal

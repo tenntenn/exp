@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ASTNode, SSAFunction, ParseError } from '../types';
+import { parseWithWasm } from '../wasm/loader';
 
 interface AppState {
   code: string;
@@ -61,23 +62,9 @@ func Greet(name string) string {
       // Auto-detect format: check if code contains txtar format markers
       const format = code.includes('-- ') && code.includes(' --') ? 'txtar' : 'single';
 
-      // Use Connect RPC with JSON-based communication
-      const response = await fetch('/parser.v1.ParserService/Parse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code,
-          format,
-        }),
-      });
+      // Use WASM parser
+      const data = await parseWithWasm(code, format);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
       set({
         ast: data.ast || null,
         ssa: data.ssa || [],

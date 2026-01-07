@@ -5,12 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
-    proxy: {
-      '/parser.v1.ParserService': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
+    port: 5173,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
     },
+  },
+  optimizeDeps: {
+    exclude: ['wasm_exec.js'],
   },
 })
