@@ -23,12 +23,20 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  code: `package main
+  code: `-- main.go --
+package main
 
 import "fmt"
 
 func main() {
-\tfmt.Println("Hello, World!")
+\tfmt.Println(Greet("World"))
+}
+
+-- greet.go --
+package main
+
+func Greet(name string) string {
+\treturn "Hello, " + name + "!"
 }`,
   ast: null,
   ssa: [],
@@ -50,6 +58,9 @@ func main() {
     set({ isLoading: true });
 
     try {
+      // Auto-detect format: check if code contains txtar format markers
+      const format = code.includes('-- ') && code.includes(' --') ? 'txtar' : 'single';
+
       // Use Connect RPC with JSON-based communication
       const response = await fetch('/parser.v1.ParserService/Parse', {
         method: 'POST',
@@ -58,7 +69,7 @@ func main() {
         },
         body: JSON.stringify({
           code,
-          format: 'single',
+          format,
         }),
       });
 
