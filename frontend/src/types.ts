@@ -41,8 +41,14 @@ export interface ParseError {
   severity: 'error' | 'warning';
 }
 
+export interface FileInfo {
+  name: string;
+  content: string;
+}
+
 export interface ParseResponse {
   ast?: ASTNode;
   ssa?: SSAFunction[];
+  files?: FileInfo[];
   errors?: ParseError[];
 }

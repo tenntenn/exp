@@ -32,33 +32,46 @@ func (h *ParserServiceHandler) Parse(
 		req.Msg.Format = "single"
 	}
 
-	// For MVP, we only support single file format
-	if req.Msg.Format != "single" {
+	var response *model.ParseResponse
+
+	switch req.Msg.Format {
+	case "single":
+		// Parse single file
+		astNode, fset, file, astErrors := parser.ParseAST(req.Msg.Code)
+
+		// Build SSA
+		var ssaFunctions []*model.SSAFunction
+		var ssaErrors []model.ParseError
+
+		if file != nil {
+			ssaFunctions, ssaErrors = parser.BuildSSA(fset, file)
+		}
+
+		// Combine errors
+		allErrors := append(astErrors, ssaErrors...)
+
+		response = &model.ParseResponse{
+			AST:    astNode,
+			SSA:    ssaFunctions,
+			Errors: allErrors,
+		}
+
+	case "txtar":
+		// Parse txtar format (multiple files)
+		astNode, ssaFunctions, files, errors := parser.ParseTxtar(req.Msg.Code)
+
+		response = &model.ParseResponse{
+			AST:    astNode,
+			SSA:    ssaFunctions,
+			Files:  files,
+			Errors: errors,
+		}
+
+	default:
 		return nil, connect.NewError(
-			connect.CodeUnimplemented,
+			connect.CodeInvalidArgument,
 			nil,
 		)
-	}
-
-	// Parse AST
-	astNode, fset, file, astErrors := parser.ParseAST(req.Msg.Code)
-
-	// Build SSA
-	var ssaFunctions []*model.SSAFunction
-	var ssaErrors []model.ParseError
-
-	if file != nil {
-		ssaFunctions, ssaErrors = parser.BuildSSA(fset, file)
-	}
-
-	// Combine errors
-	allErrors := append(astErrors, ssaErrors...)
-
-	// Build response
-	response := &model.ParseResponse{
-		AST:    astNode,
-		SSA:    ssaFunctions,
-		Errors: allErrors,
 	}
 
 	return connect.NewResponse(response), nil

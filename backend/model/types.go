@@ -52,7 +52,14 @@ type BasicBlock struct {
 type ParseResponse struct {
 	AST    *ASTNode       `json:"ast,omitempty"`
 	SSA    []*SSAFunction `json:"ssa,omitempty"`
+	Files  []FileInfo     `json:"files,omitempty"` // For txtar format
 	Errors []ParseError   `json:"errors,omitempty"`
+}
+
+// FileInfo represents information about a file in txtar format
+type FileInfo struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 // ParseError represents a parse or type-checking error
